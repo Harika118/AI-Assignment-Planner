@@ -5,7 +5,6 @@ let assignments = [];
 // ===============================
 
 async function addAssignment() {
-
     const name = document.getElementById("assignmentName").value.trim();
     const subject = document.getElementById("subject").value.trim();
     const deadline = document.getElementById("deadline").value;
@@ -13,150 +12,97 @@ async function addAssignment() {
     const difficulty = document.getElementById("difficulty").value;
 
     if (!name || !subject || !deadline || !hours || !difficulty) {
-        alert("⚠️ Please fill all fields.");
+        alert("Please fill all fields.");
         return;
     }
 
     const assignment = {
-        name: name,
-        subject: subject,
-        deadline: deadline,
+        name,
+        subject,
+        deadline,
         hours: Number(hours),
-        difficulty: difficulty
+        difficulty
     };
 
-    try {
+    assignments.push(assignment);
 
-        const response = await fetch(
-            "http://127.0.0.1:5000/api/assignments",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify(assignment)
-            }
-        );
+    displayAssignments();
 
-        const data = await response.json();
+    // Clear form
+    document.getElementById("assignmentName").value = "";
+    document.getElementById("subject").value = "";
+    document.getElementById("deadline").value = "";
+    document.getElementById("hours").value = "";
+    document.getElementById("difficulty").value = "";
 
-        if (!response.ok) {
-            alert("❌ " + data.message);
-            return;
-        }
-
-        assignments.push(data.assignment);
-
-        displayAssignments();
-        clearForm();
-
-        alert("✅ Assignment added successfully!");
-
-    } catch (error) {
-
-        console.error("Add Assignment Error:", error);
-
-        alert(
-            "❌ Backend connection failed.\n" +
-            "Make sure the backend server is running."
-        );
-    }
+    console.log("Assignment added:", assignment);
 }
-
 
 // ===============================
 // DISPLAY ASSIGNMENTS
 // ===============================
 
 function displayAssignments() {
-
     const container = document.getElementById("assignments");
-    const count = document.getElementById("assignmentCount");
+
+    if (!container) return;
 
     container.innerHTML = "";
 
-    count.textContent =
-        `${assignments.length} assignment${assignments.length === 1 ? "" : "s"}`;
+    assignments.forEach((assignment, index) => {
+        const card = document.createElement("div");
 
-    assignments.forEach(assignment => {
+        card.className = "assignment-item";
 
-        const item = document.createElement("div");
-
-        item.className = "assignment-item";
-
-        item.innerHTML = `
+        card.innerHTML = `
             <div class="assignment-details">
-
                 <strong>${assignment.name}</strong>
 
                 <small>
-                    ${assignment.subject} •
-                    Deadline: ${assignment.deadline} •
-                    ${assignment.hours} hours
+                    Subject: ${assignment.subject}<br>
+                    Deadline: ${assignment.deadline}<br>
+                    Study Time: ${assignment.hours} hours<br>
+                    Difficulty: ${assignment.difficulty}
                 </small>
-
             </div>
 
-            <div>
-
-                <span class="difficulty">
-                    ${assignment.difficulty}
-                </span>
-
-                <button
-                    class="delete-btn"
-                    onclick="deleteAssignment(${assignment.id})">
-                    Delete
-                </button>
-
-            </div>
+            <button onclick="removeAssignment(${index})">
+                Remove
+            </button>
         `;
 
-        container.appendChild(item);
+        container.appendChild(card);
     });
+
+    const count = document.getElementById("assignmentCount");
+
+    if (count) {
+        count.textContent =
+            `${assignments.length} assignment${assignments.length !== 1 ? "s" : ""}`;
+    }
 }
 
-
 // ===============================
-// DELETE ASSIGNMENT
+// REMOVE ASSIGNMENT
 // ===============================
 
-function deleteAssignment(id) {
-
-    assignments = assignments.filter(
-        assignment => assignment.id !== id
-    );
-
+function removeAssignment(index) {
+    assignments.splice(index, 1);
     displayAssignments();
 }
 
-
 // ===============================
-// CLEAR FORM
-// ===============================
-
-function clearForm() {
-
-    document.getElementById("assignmentName").value = "";
-    document.getElementById("subject").value = "";
-    document.getElementById("deadline").value = "";
-    document.getElementById("hours").value = "";
-    document.getElementById("difficulty").value = "";
-}
-
-
-// ===============================
-// GENERATE AI STUDY PLAN
+// GENERATE AI PLAN
 // ===============================
 
 async function generatePlan() {
 
     if (assignments.length === 0) {
-        alert("⚠️ Add at least one assignment first.");
+        alert("Please add at least one assignment first.");
         return;
     }
 
-    console.log("🤖 Generating study plan...");
+    console.log("Generating AI study plan...");
     console.log("Assignments:", assignments);
 
     try {
@@ -165,9 +111,11 @@ async function generatePlan() {
             "http://127.0.0.1:5000/api/ai-plan",
             {
                 method: "POST",
+
                 headers: {
                     "Content-Type": "application/json"
                 },
+
                 body: JSON.stringify({
                     assignments: assignments
                 })
@@ -178,25 +126,18 @@ async function generatePlan() {
 
         const raw = await response.text();
 
-        console.log("Backend raw response:", raw);
+        console.log("Backend response:", raw);
 
         let data;
 
         try {
             data = JSON.parse(raw);
-        } catch (e) {
-            console.error("Invalid JSON from backend:", raw);
-
-            throw new Error(
-                "Backend returned an invalid response."
-            );
+        } catch (error) {
+            console.error("Invalid JSON:", raw);
+            throw new Error("Backend returned invalid JSON.");
         }
 
-        // Backend returned an error
         if (!response.ok) {
-
-            console.error("Backend error:", data);
-
             throw new Error(
                 data.error ||
                 data.message ||
@@ -205,14 +146,10 @@ async function generatePlan() {
         }
 
         if (!data.aiPlan) {
-            throw new Error(
-                "Backend did not return an AI plan."
-            );
+            throw new Error("No AI plan returned by backend.");
         }
 
-        let cleanText = data.aiPlan
-            .toString()
-            .trim();
+        let cleanText = data.aiPlan.toString().trim();
 
         // Remove markdown code blocks
         cleanText = cleanText
@@ -221,42 +158,26 @@ async function generatePlan() {
             .replace(/\s*```$/i, "")
             .trim();
 
-        console.log(
-            "Clean AI response:",
-            cleanText
-        );
-
         let aiResult;
 
         try {
-
             aiResult = JSON.parse(cleanText);
+        } catch (error) {
+            console.error("AI JSON parsing failed:", error);
 
-        } catch (parseError) {
-
-            console.error(
-                "AI JSON parsing failed:",
-                parseError
-            );
-
-            // Create a local plan if Gemini returns
-            // unexpected text
+            // If Gemini returns normal text,
+            // use local plan instead.
             aiResult = createLocalPlan();
-
         }
 
         displayStudyPlan(aiResult);
 
     } catch (error) {
 
-        console.error(
-            "AI Plan Error:",
-            error
-        );
+        console.error("AI Plan Error:", error);
 
-        // IMPORTANT:
-        // Instead of showing the failure popup,
-        // generate a working local plan.
+        // Fallback so the project still works
+        // even if Gemini/backend is temporarily unavailable.
 
         const localPlan = createLocalPlan();
 
@@ -264,6 +185,9 @@ async function generatePlan() {
     }
 }
 
+// ===============================
+// LOCAL FALLBACK PLAN
+// ===============================
 
 function createLocalPlan() {
 
@@ -277,8 +201,8 @@ function createLocalPlan() {
         (a, b) => {
 
             const difficultyDifference =
-                difficultyWeight[b.difficulty] -
-                difficultyWeight[a.difficulty];
+                (difficultyWeight[b.difficulty] || 0) -
+                (difficultyWeight[a.difficulty] || 0);
 
             if (difficultyDifference !== 0) {
                 return difficultyDifference;
@@ -292,38 +216,39 @@ function createLocalPlan() {
     const plan = sortedAssignments.map(
         (assignment, index) => {
 
+            let reason;
+
+            if (assignment.difficulty === "Hard") {
+                reason =
+                    "High difficulty assignment scheduled early.";
+            } else if (assignment.difficulty === "Medium") {
+                reason =
+                    "Medium difficulty assignment scheduled after high-priority tasks.";
+            } else {
+                reason =
+                    "Easy assignment scheduled to maintain steady progress.";
+            }
+
             return {
                 day: `Day ${index + 1}`,
-
                 task: assignment.name,
-
                 subject: assignment.subject,
-
                 hours: Number(assignment.hours),
-
-                reason:
-                    assignment.difficulty === "Hard"
-                        ? "High difficulty assignment scheduled early."
-                        : assignment.difficulty === "Medium"
-                        ? "Medium difficulty assignment scheduled after priority tasks."
-                        : "Easy assignment scheduled to maintain steady progress."
+                reason: reason
             };
-
         }
     );
 
     return {
-
         summary:
             "Your personalized study plan is organized using assignment difficulty, deadline and estimated study hours.",
 
         plan: plan
-
     };
 }
 
 // ===============================
-// DISPLAY AI STUDY PLAN
+// DISPLAY STUDY PLAN
 // ===============================
 
 function displayStudyPlan(aiResult) {
@@ -331,8 +256,6 @@ function displayStudyPlan(aiResult) {
     let planContainer =
         document.getElementById("studyPlan");
 
-
-    // Create container if it doesn't exist
     if (!planContainer) {
 
         planContainer =
@@ -340,19 +263,15 @@ function displayStudyPlan(aiResult) {
 
         planContainer.id = "studyPlan";
 
-        document
-            .querySelector(".planner-page")
-            .appendChild(planContainer);
+        const page =
+            document.querySelector(".planner-page");
+
+        if (page) {
+            page.appendChild(planContainer);
+        }
     }
 
-
-    // Clear previous plan
     planContainer.innerHTML = "";
-
-
-    // ===============================
-    // AI SUMMARY
-    // ===============================
 
     const heading =
         document.createElement("h2");
@@ -361,7 +280,6 @@ function displayStudyPlan(aiResult) {
         "🤖 Your AI Study Plan";
 
     planContainer.appendChild(heading);
-
 
     if (aiResult.summary) {
 
@@ -374,11 +292,6 @@ function displayStudyPlan(aiResult) {
         planContainer.appendChild(summary);
     }
 
-
-    // ===============================
-    // PLAN ITEMS
-    // ===============================
-
     if (
         !aiResult.plan ||
         !Array.isArray(aiResult.plan)
@@ -388,15 +301,12 @@ function displayStudyPlan(aiResult) {
             document.createElement("p");
 
         errorMessage.textContent =
-            "⚠️ No study plan was returned by AI.";
+            "No study plan was returned.";
 
-        planContainer.appendChild(
-            errorMessage
-        );
+        planContainer.appendChild(errorMessage);
 
         return;
     }
-
 
     aiResult.plan.forEach(item => {
 
@@ -406,9 +316,7 @@ function displayStudyPlan(aiResult) {
         card.className =
             "assignment-item";
 
-
         card.innerHTML = `
-
             <div class="assignment-details">
 
                 <strong>
@@ -417,31 +325,24 @@ function displayStudyPlan(aiResult) {
                 </strong>
 
                 <small>
-
                     📚 Subject:
                     ${item.subject || "N/A"}
-
                     <br>
 
                     ⏱️ Study Time:
                     ${item.hours || 1} hours
-
                     <br>
 
                     💡 Reason:
                     ${item.reason || "Recommended by AI"}
-
                 </small>
 
             </div>
-
         `;
 
         planContainer.appendChild(card);
     });
 
-
-    // Scroll to AI plan
     planContainer.scrollIntoView({
         behavior: "smooth"
     });
