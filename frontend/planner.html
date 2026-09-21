@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment Planner</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<header class="navbar">
+    <div class="logo">🎓 AI Assignment Planner</div>
+    <button class="login-btn" onclick="location.href='index.html'">
+        Home
+    </button>
+</header>
+
+<main class="planner-page">
+
+    <div class="planner-heading">
+        <span class="badge">📝 Assignment Manager</span>
+
+        <h1>Add Your Assignments</h1>
+
+        <p>
+            Enter your assignments and deadlines.
+            Our AI will prioritize them and create a smart study plan.
+        </p>
+    </div>
+
+    <div class="assignment-form">
+
+        <div class="form-group">
+            <label>Assignment Name</label>
+            <input
+                type="text"
+                id="assignmentName"
+                placeholder="e.g. OS Unit 2 Assignment"
+            >
+        </div>
+
+        <div class="form-group">
+            <label>Subject</label>
+            <input
+                type="text"
+                id="subject"
+                placeholder="e.g. Operating Systems"
+            >
+        </div>
+
+        <div class="form-row">
+
+            <div class="form-group">
+                <label>Deadline</label>
+                <input type="date" id="deadline">
+            </div>
+
+            <div class="form-group">
+                <label>Estimated Hours</label>
+                <input
+                    type="number"
+                    id="hours"
+                    min="1"
+                    placeholder="e.g. 3"
+                >
+            </div>
+
+        </div>
+
+        <div class="form-group">
+            <label>Difficulty</label>
+
+            <select id="difficulty">
+                <option value="">Select difficulty</option>
+                <option value="Easy">Easy</option>
+                <option value="Medium">Medium</option>
+                <option value="Hard">Hard</option>
+            </select>
+        </div>
+
+        <button class="primary-btn add-btn" onclick="addAssignment()">
+            + Add Assignment
+        </button>
+
+    </div>
+
+    <section class="assignment-list">
+
+        <div class="list-header">
+            <h2>Your Assignments</h2>
+            <span id="assignmentCount">0 assignments</span>
+        </div>
+
+        <div id="assignments"></div>
+
+        <button
+            class="ai-plan-btn"
+            onclick="generatePlan()"
+        >
+            🤖 Generate AI Study Plan
+        </button>
+
+    </section>
+
+</main>
+
+<script src="js/planner.js"></script>
+
+</body>
+</html>
